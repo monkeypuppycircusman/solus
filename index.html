@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOLUS — Golden Sun Saw</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=DM+Mono:wght@300;400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&display=swap');
+
+:root {
+  --void:    #03020a;
+  --deep:    #07040c;
+  --murk:    #0e0a10;
+  --fog:     #181010;
+  --mist:    #241810;
+  /* Solar palette */
+  --sol0:    #fff8e0;   /* white-hot core */
+  --sol1:    #ffe880;   /* bright aureole */
+  --sol2:    #ffb820;   /* golden corona */
+  --sol3:    #e87000;   /* deep amber */
+  --sol4:    #c03800;   /* burnt edge */
+  --sol5:    #601800;   /* solar dark */
+  --corona:  rgba(255,184,32,.18);
+  --flare:   rgba(255,232,128,.5);
+  --plasma:  rgba(255,120,20,.2);
+  /* harmonics */
+  --h1:      #fff0a0;
+  --h2:      #ffcc40;
+  --h3:      #ff8820;
+  --h4:      #e03000;
+  --text:    #8a7060;
+  --text2:   #504030;
+  --text3:   #2a1c10;
+  --mono:   'DM Mono', monospace;
+  --serif:  'Cormorant Garamond', serif;
+  --goth:   'UnifrakturMaguntia', cursive;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  background: var(--void);
+  overflow: hidden;
+  font-family: var(--mono);
+  cursor: none;
+}
+
+#cursor {
+  position: fixed; width: 22px; height: 22px;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+}
+
+#solar-atmos { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+#app {
+  position: relative; width: 100vw; height: 100vh;
+  display: flex; flex-direction: column; z-index: 1;
+}
+
+/* ── HEADER ── */
+#hdr {
+  flex-shrink: 0; padding: 16px 28px 12px;
+  display: flex; align-items: baseline; gap: 20px;
+  border-bottom: 1px solid var(--text3);
+  background: linear-gradient(180deg, rgba(7,4,12,.97) 0%, transparent 100%);
+  position: relative; z-index: 2;
+}
+#logo {
+  font-family: var(--goth); font-size: 36px;
+  background: linear-gradient(180deg, var(--sol0) 0%, var(--sol1) 35%, var(--sol2) 65%, var(--sol3) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 14px rgba(255,184,32,.5)) drop-shadow(0 0 40px rgba(255,120,20,.2));
+  letter-spacing: 5px; line-height: 1;
+}
+#logo-sub {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 3px;
+  color: var(--text3); text-transform: uppercase;
+}
+#hdr-stats { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.hstat { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; }
+.hstat span { color: var(--text2); transition: color .1s; }
+.hstat span.lit  { color: var(--sol1); text-shadow: 0 0 8px var(--sol2); }
+.hstat span.lit2 { color: var(--sol0); text-shadow: 0 0 10px var(--sol1); }
+#power-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); transition: all .4s; }
+#power-dot.on { background: var(--sol2); box-shadow: 0 0 8px var(--sol2), 0 0 24px rgba(255,184,32,.55); }
+
+/* ── MAIN ── */
+#main { flex: 1; display: flex; overflow: hidden; position: relative; }
+#main::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,184,32,.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,120,20,.01) 1px, transparent 1px);
+  background-size: 60px 50px; pointer-events: none;
+}
+
+/* ── CENTER ── */
+#center-col {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  padding: 10px 20px 0; gap: 10px; overflow: hidden;
+  position: relative; z-index: 1;
+}
+
+/* ── SUN DISPLAY ── */
+#sun-section {
+  width: 100%; max-width: 680px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 20px;
+  padding: 0 4px;
+}
+
+/* Solar disc + harmonic rings canvas */
+#sun-canvas-wrap {
+  position: relative; flex-shrink: 0;
+  width: 130px; height: 130px;
+}
+#sun-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+}
+
+/* Note / freq info beside sun */
+#sun-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+#sun-note {
+  font-family: var(--goth); font-size: 44px; letter-spacing: 4px;
+  background: linear-gradient(180deg, var(--sol0) 0%, var(--sol2) 55%, var(--sol3) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(255,184,32,.4));
+  line-height: 1; transition: filter .08s;
+}
+#sun-freq {
+  font-family: var(--mono); font-size: 11px; color: var(--sol2);
+  letter-spacing: 2px; text-shadow: 0 0 8px var(--sol3);
+}
+#sun-voice-text {
+  font-family: var(--serif); font-style: italic; font-size: 12px;
+  color: rgba(255,184,32,.35); letter-spacing: 1px; line-height: 1.4;
+}
+
+/* Harmonic stack readout */
+#harmonic-display {
+  flex-shrink: 0; width: 160px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.h-row {
+  display: flex; align-items: center; gap: 6px;
+}
+.h-label {
+  font-family: var(--mono); font-size: 7px; letter-spacing: 1px;
+  color: var(--text3); width: 20px; text-align: right; flex-shrink: 0;
+}
+.h-bar-outer {
+  flex: 1; height: 3px; background: var(--text3); border-radius: 2px; overflow: hidden;
+}
+.h-bar-fill {
+  height: 100%; border-radius: 2px; transition: width .08s;
+}
+
+/* ── FILTER / MOD SECTION ── */
+#mod-section {
+  width: 100%; max-width: 680px; flex-shrink: 0;
+  display: flex; gap: 8px; align-items: stretch;
+}
+
+/* Filter envelope visual */
+#filter-env {
+  flex: 1; height: 56px;
+  border: 1px solid var(--text3); border-radius: 2px;
+  background: var(--deep); overflow: hidden;
+  position: relative; cursor: ew-resize;
+}
+#filter-env-canvas { width: 100%; height: 100%; display: block; }
+#filter-env-label {
+  position: absolute; left: 8px; top: 6px;
+  font-family: var(--mono); font-size: 7px; letter-spacing: 2px;
+  color: var(--text3); text-transform: uppercase; pointer-events: none;
+}
+
+/* Solar flare strip */
+#flare-strip {
+  width: 100%; max-width: 680px; flex-shrink: 0;
+  height: 18px;
+  border: 1px solid var(--text3); border-radius: 2px;
+  background: var(--deep); overflow: hidden; position: relative;
+}
+#flare-canvas { width: 100%; height: 100%; display: block; }
+#flare-label {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  font-family: var(--mono); font-size: 7px; letter-spacing: 2px;
+  color: var(--text3); text-transform: uppercase; pointer-events: none;
+}
+
+/* ── KEYBOARD ── */
+#kb-section {
+  width: 100%; max-width: 680px; flex-shrink: 0; position: relative;
+}
+#keyboard {
+  display: flex; height: 82px;
+  border: 1px solid var(--text3); border-radius: 0 0 3px 3px;
+  overflow: hidden; position: relative;
+  background: linear-gradient(180deg, #0c0806 0%, #080404 100%);
+}
+.key { position: relative; cursor: pointer; flex-shrink: 0; transition: background .04s; }
+.key.white {
+  background: linear-gradient(180deg,#100c08 0%,#080402 100%);
+  border-right: 1px solid var(--text3); flex: 1; z-index: 1;
+}
+.key.white:hover { background: rgba(255,184,32,.05); }
+.key.white.active {
+  background: linear-gradient(180deg, rgba(255,184,32,.45) 0%, rgba(200,80,0,.28) 100%) !important;
+  box-shadow: inset 0 -3px 14px rgba(255,184,32,.3), 0 0 8px var(--corona);
+}
+.key.black {
+  background: linear-gradient(180deg,#040306 0%,#080408 100%);
+  position: absolute; width: 60%; height: 62%; top: 0; z-index: 2;
+  border-radius: 0 0 3px 3px; border: 1px solid var(--text3); border-top: none;
+}
+.key.black:hover { background: rgba(255,184,32,.08); }
+.key.black.active { background: rgba(255,184,32,.22) !important; box-shadow: 0 0 10px var(--corona); }
+.key-lbl {
+  position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 7px; color: var(--text3);
+  pointer-events: none; user-select: none;
+}
+.key.active .key-lbl { color: rgba(255,200,80,.5); }
+
+/* ── OCT WHEEL ── */
+#oct-outer { position: absolute; left: -46px; top: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+#oct-wheel { width: 32px; height: 82px; background: var(--void); border: 1px solid var(--text3); border-radius: 4px; overflow: hidden; cursor: ns-resize; position: relative; user-select: none; }
+#oct-wheel-inner { position: absolute; top: 0; left: 0; right: 0; transition: transform .14s cubic-bezier(.22,.68,0,1.2); }
+.ow-slot { height: 18px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 8px; color: var(--text3); border-bottom: 1px solid var(--text3); flex-shrink: 0; }
+.ow-slot.cur { color: var(--sol2); background: rgba(255,184,32,.06); }
+#oct-wheel::before,#oct-wheel::after { content:'';position:absolute;left:0;right:0;height:12px;z-index:2;pointer-events:none; }
+#oct-wheel::before { top:0;background:linear-gradient(to bottom,var(--void),transparent); }
+#oct-wheel::after  { bottom:0;background:linear-gradient(to top,var(--void),transparent); }
+#oct-lbl { font-family:var(--mono);font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:1px; }
+
+/* ── WAVEFORM ── */
+#wave-bar { flex-shrink:0;height:52px;background:var(--deep);border-top:1px solid var(--text3);position:relative;z-index:2;overflow:hidden; }
+#wave-canvas { width:100%;height:100%;display:block; }
+
+/* ── RIGHT PANEL ── */
+#panel {
+  width: 210px; flex-shrink: 0;
+  border-left: 1px solid var(--text3);
+  background: linear-gradient(180deg,rgba(10,6,14,.95) 0%,rgba(6,3,10,.98) 100%);
+  display: flex; flex-direction: column;
+  padding: 16px 14px; gap: 14px;
+  overflow-y: auto; position: relative; z-index: 5;
+}
+.psec { display: flex; flex-direction: column; gap: 7px; }
+.ptitle {
+  font-family: var(--mono); font-size: 7px; letter-spacing: 3px;
+  text-transform: uppercase; color: rgba(255,184,32,.28);
+  padding-bottom: 5px; border-bottom: 1px solid rgba(255,184,32,.07);
+}
+
+.pBtn {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 5px 10px; border: 1px solid rgba(255,184,32,.15); border-radius: 2px;
+  color: rgba(255,184,32,.35); background: transparent; cursor: pointer; transition: all .15s; text-align: left;
+}
+.pBtn:hover { color: var(--sol1); border-color: rgba(255,184,32,.4); }
+.pBtn.active { color: var(--sol1); border-color: var(--sol2); background: rgba(255,184,32,.06); text-shadow: 0 0 8px rgba(255,184,32,.4); }
+
+.kg { display:flex;flex-direction:column;align-items:center;gap:3px; }
+canvas.knob { cursor:ns-resize;display:block; }
+.kl { font-family:var(--mono);font-size:7px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,184,32,.28); }
+.kv { font-family:var(--mono);font-size:9px;color:rgba(255,184,32,.5);min-width:32px;text-align:center; }
+.knob-row { display:flex;gap:8px;justify-content:center;flex-wrap:wrap; }
+
+#note-panel-display {
+  margin-top:auto;padding-top:10px;
+  border-top:1px solid rgba(255,184,32,.07);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+#panel-note {
+  font-family: var(--serif); font-size: 32px; font-style: italic; font-weight: 300;
+  background: linear-gradient(180deg, var(--sol0) 0%, var(--sol2) 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(255,184,32,.3));
+  line-height: 1; transition: filter .08s;
+}
+#panel-freq { font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:1px; }
+#panel-desc { font-family:var(--serif);font-style:italic;font-size:11px;color:rgba(255,184,32,.3);text-align:center;line-height:1.4; }
+
+/* ── CONTROLS ── */
+#controls {
+  flex-shrink:0;
+  background:linear-gradient(0deg,rgba(6,3,10,.98) 0%,transparent 100%);
+  border-top:1px solid var(--text3);
+  padding:9px 22px 13px;
+  display:flex;align-items:center;gap:16px;
+  position:relative;z-index:2;flex-wrap:wrap;
+}
+.cdiv { width:1px;height:30px;background:var(--text3);flex-shrink:0; }
+
+::-webkit-scrollbar { display:none; }
+</style>
+</head>
+<body>
+
+<!-- Cursor: solar flare ray -->
+<div id="cursor">
+  <svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="11" cy="11" r="3.5" fill="none" stroke="rgba(255,232,128,.85)" stroke-width="1.2"/>
+    <line x1="11" y1="0"  x2="11" y2="5.5" stroke="rgba(255,184,32,.7)" stroke-width="1" stroke-linecap="round"/>
+    <line x1="11" y1="16.5" x2="11" y2="22" stroke="rgba(255,184,32,.7)" stroke-width="1" stroke-linecap="round"/>
+    <line x1="0"  y1="11" x2="5.5" y2="11" stroke="rgba(255,184,32,.7)" stroke-width="1" stroke-linecap="round"/>
+    <line x1="16.5" y1="11" x2="22" y2="11" stroke="rgba(255,184,32,.7)" stroke-width="1" stroke-linecap="round"/>
+    <line x1="3.3"  y1="3.3"  x2="7.1"  y2="7.1"  stroke="rgba(255,120,20,.5)" stroke-width=".8" stroke-linecap="round"/>
+    <line x1="14.9" y1="14.9" x2="18.7" y2="18.7" stroke="rgba(255,120,20,.5)" stroke-width=".8" stroke-linecap="round"/>
+    <line x1="18.7" y1="3.3"  x2="14.9" y2="7.1"  stroke="rgba(255,120,20,.5)" stroke-width=".8" stroke-linecap="round"/>
+    <line x1="3.3"  y1="18.7" x2="7.1"  y2="14.9" stroke="rgba(255,120,20,.5)" stroke-width=".8" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<canvas id="solar-atmos"></canvas>
+
+<div id="app">
+  <div id="hdr">
+    <div>
+      <div id="logo">Solus</div>
+      <div id="logo-sub">Golden Sun Saw · Solar Harmonic Synth</div>
+    </div>
+    <div id="hdr-stats">
+      <div class="hstat">Note <span id="hs-note">—</span></div>
+      <div class="hstat">Partial <span id="hs-partial">—</span></div>
+      <div class="hstat">Voices <span id="hs-voices">0</span></div>
+      <div id="power-dot"></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="center-col">
+
+      <!-- SUN DISPLAY -->
+      <div id="sun-section">
+        <div id="sun-canvas-wrap">
+          <canvas id="sun-canvas"></canvas>
+        </div>
+        <div id="sun-info">
+          <div id="sun-note">—</div>
+          <div id="sun-freq">— Hz</div>
+          <div id="sun-voice-text">ancient and warm</div>
+        </div>
+        <div id="harmonic-display">
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h1)">1x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb1" style="width:85%;background:var(--h1);box-shadow:0 0 3px var(--h1)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h2)">2x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb2" style="width:50%;background:var(--h2);box-shadow:0 0 3px var(--h2)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h2)">3x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb3" style="width:34%;background:var(--h2);box-shadow:0 0 3px var(--h2)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h3)">4x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb4" style="width:22%;background:var(--h3);box-shadow:0 0 3px var(--h3)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h3)">5x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb5" style="width:15%;background:var(--h3);box-shadow:0 0 3px var(--h3)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h4)">6x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb6" style="width:10%;background:var(--h4);box-shadow:0 0 3px var(--h4)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h4)">7x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb7" style="width:6%;background:var(--h4);box-shadow:0 0 3px var(--h4)"></div></div>
+          </div>
+          <div class="h-row">
+            <span class="h-label" style="color:var(--h4)">8x</span>
+            <div class="h-bar-outer"><div class="h-bar-fill" id="hb8" style="width:3%;background:var(--h4);box-shadow:0 0 3px var(--h4)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER ENV + MOD -->
+      <div id="mod-section">
+        <div id="filter-env">
+          <canvas id="filter-env-canvas"></canvas>
+          <div id="filter-env-label">Filter</div>
+        </div>
+      </div>
+
+      <!-- SOLAR FLARE STRIP (waveform strip) -->
+      <div id="flare-strip">
+        <canvas id="flare-canvas"></canvas>
+        <div id="flare-label">Solar Activity</div>
+      </div>
+
+      <!-- KEYBOARD -->
+      <div id="kb-section" style="position:relative;">
+        <div id="oct-outer">
+          <div id="oct-wheel"><div id="oct-wheel-inner"></div></div>
+          <div id="oct-lbl">Oct</div>
+        </div>
+        <div id="keyboard"></div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="panel">
+
+      <div class="psec">
+        <div class="ptitle">✦ Character</div>
+        <button class="pBtn active" data-char="solar">Solar Saw</button>
+        <button class="pBtn" data-char="plasma">Plasma</button>
+        <button class="pBtn" data-char="corona">Corona</button>
+        <button class="pBtn" data-char="forge">Forge</button>
+        <button class="pBtn" data-char="ancient">Ancient</button>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">✦ Envelope</div>
+        <div class="knob-row">
+          <div class="kg">
+            <canvas class="knob" id="k-attack"  width="44" height="44" data-min="0.003" data-max="3"   data-val="0.12" data-color="#fff0a0"></canvas>
+            <div class="kl">Rise</div><div class="kv" id="v-attack">0.12</div>
+          </div>
+          <div class="kg">
+            <canvas class="knob" id="k-release" width="44" height="44" data-min="0.05"  data-max="8"   data-val="2.5"  data-color="#ffb820"></canvas>
+            <div class="kl">Fade</div><div class="kv" id="v-release">2.50</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">✦ Solar Tone</div>
+        <div class="knob-row">
+          <div class="kg">
+            <canvas class="knob" id="k-heat"    width="44" height="44" data-min="0" data-max="1"   data-val="0.65" data-color="#ff8820"></canvas>
+            <div class="kl">Heat</div><div class="kv" id="v-heat">0.65</div>
+          </div>
+          <div class="kg">
+            <canvas class="knob" id="k-mass"    width="44" height="44" data-min="0" data-max="1"   data-val="0.5"  data-color="#e87000"></canvas>
+            <div class="kl">Mass</div><div class="kv" id="v-mass">0.50</div>
+          </div>
+        </div>
+        <div class="knob-row">
+          <div class="kg">
+            <canvas class="knob" id="k-reverb"  width="44" height="44" data-min="0" data-max="1"   data-val="0.4"  data-color="#ffe880"></canvas>
+            <div class="kl">Space</div><div class="kv" id="v-reverb">0.40</div>
+          </div>
+          <div class="kg">
+            <canvas class="knob" id="k-detune"  width="44" height="44" data-min="0" data-max="40"  data-val="8"    data-color="#ffcc40"></canvas>
+            <div class="kl">Drift</div><div class="kv" id="v-detune">8</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">✦ Harmonics</div>
+        <div class="knob-row">
+          <div class="kg">
+            <canvas class="knob" id="k-odd"     width="44" height="44" data-min="0" data-max="1"   data-val="0.7"  data-color="#ff8820"></canvas>
+            <div class="kl">Odd</div><div class="kv" id="v-odd">0.70</div>
+          </div>
+          <div class="kg">
+            <canvas class="knob" id="k-even"    width="44" height="44" data-min="0" data-max="1"   data-val="0.55" data-color="#ffb820"></canvas>
+            <div class="kl">Even</div><div class="kv" id="v-even">0.55</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="note-panel-display">
+        <div id="panel-note">—</div>
+        <div id="panel-freq">— Hz</div>
+        <div id="panel-desc">the sun has always been there</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="wave-bar"><canvas id="wave-canvas"></canvas></div>
+
+  <div id="controls">
+    <div class="kg">
+      <canvas class="knob" id="k-sub"    width="38" height="38" data-min="0" data-max="1" data-val="0.4" data-color="#c03800"></canvas>
+      <div class="kl">Sub</div><div class="kv" id="v-sub">0.40</div>
+    </div>
+    <div class="kg">
+      <canvas class="knob" id="k-flare"  width="38" height="38" data-min="0" data-max="1" data-val="0.35" data-color="#fff0a0"></canvas>
+      <div class="kl">Flare</div><div class="kv" id="v-flare">0.35</div>
+    </div>
+    <div class="kg">
+      <canvas class="knob" id="k-fold"   width="38" height="38" data-min="0" data-max="1" data-val="0.3"  data-color="#e87000"></canvas>
+      <div class="kl">Fold</div><div class="kv" id="v-fold">0.30</div>
+    </div>
+    <div class="kg">
+      <canvas class="knob" id="k-chorus" width="38" height="38" data-min="0" data-max="1" data-val="0.45" data-color="#ffcc40"></canvas>
+      <div class="kl">Chorus</div><div class="kv" id="v-chorus">0.45</div>
+    </div>
+
+    <div class="cdiv"></div>
+
+    <div style="font-family:var(--serif);font-style:italic;font-size:12px;color:rgba(255,184,32,.3);letter-spacing:1px;">
+      ancient and enormous
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// SOLUS — Golden Sun Saw
+// Warm radiant sawtooth, thick with harmonics
+// The sound the sun would make if it sang
+// ══════════════════════════════════════════════════════════════
+
+let actx = null, convolver = null, analyser = null;
+const activeVoices = new Map();
+
+function getCtx() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+  if (!convolver) buildReverb();
+  if (!analyser) {
+    analyser = actx.createAnalyser(); analyser.fftSize = 512;
+    analyser.connect(actx.destination);
+  }
+  return actx;
+}
+
+const P = {
+  attack: 0.12, release: 2.5,
+  heat: 0.65,   // filter brightness
+  mass: 0.5,    // resonance / weight
+  reverb: 0.4,  detune: 8,
+  odd: 0.7, even: 0.55,
+  sub: 0.4, flare: 0.35, fold: 0.3, chorus: 0.45,
+  char: 'solar',
+};
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SOLAR_DESCRIPTIONS = {
+  solar:  'pure sawtooth, golden and warm',
+  plasma: 'overdriven and seething',
+  corona: 'thin bright outer ring, shimmer',
+  forge:  'heavy and industrial, molten',
+  ancient:'slow breathing, immense age',
+};
+function midiToFreq(n) { return 440*Math.pow(2,(n-69)/12); }
+function midiName(n)   { return NOTE_NAMES[n%12]+(Math.floor(n/12)-1); }
+
+// ══════════════════════════════════════════════════════════════
+// REVERB — vast solar space, long and warm
+// ══════════════════════════════════════════════════════════════
+function buildReverb() {
+  const c=actx, dur=6.5, len=c.sampleRate*dur, buf=c.createBuffer(2,len,c.sampleRate);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++){
+      const env=Math.pow(1-i/len,1.1);
+      d[i]=(Math.random()*2-1)*env*(0.5+0.5*Math.sin(i*0.00005));
+    }
+  }
+  if(convolver)try{convolver.disconnect()}catch(e){}
+  convolver=c.createConvolver();convolver.buffer=buf;
+  convolver.connect(c.destination);
+}
+
+// ══════════════════════════════════════════════════════════════
+// GOLDEN SAW VOICE
+// The saw is built from individual harmonics so we can
+// shape each one independently — odd/even ratio, heat/mass
+// ══════════════════════════════════════════════════════════════
+function startNote(noteNum, vel=0.75) {
+  if (activeVoices.has(noteNum)) return;
+  const c = getCtx();
+  const freq = midiToFreq(noteNum);
+  const now  = c.currentTime;
+
+  const nodes = [];
+  const master = c.createGain(); master.gain.value = 0;
+  master.gain.setValueAtTime(0, now);
+  master.gain.linearRampToValueAtTime(vel * 0.75, now + P.attack);
+
+  // ── CHARACTER PRESETS ──
+  // Each character = different oscillator stack approach
+  let charFn;
+  switch(P.char) {
+    case 'solar':  charFn = buildSolarSaw;  break;
+    case 'plasma': charFn = buildPlasma;    break;
+    case 'corona': charFn = buildCorona;    break;
+    case 'forge':  charFn = buildForge;     break;
+    case 'ancient':charFn = buildAncient;   break;
+    default:       charFn = buildSolarSaw;
+  }
+
+  charFn(c, freq, vel, now, master, nodes);
+
+  // ── FILTER: the "heat" controls brightness ──
+  const lpf = c.createBiquadFilter(); lpf.type='lowpass';
+  lpf.frequency.setValueAtTime(120, now);
+  lpf.frequency.exponentialRampToValueAtTime(
+    200 + P.heat * P.heat * 12000, now + P.attack * 0.7
+  );
+  lpf.Q.value = 0.5 + P.mass * 3.5;
+
+  // Filter LFO — the sun "breathes"
+  const fLFO = c.createOscillator(); fLFO.frequency.value = 0.05 + Math.random()*0.04;
+  const fLFOG = c.createGain(); fLFOG.gain.value = (P.heat * 800) + 100;
+  fLFO.connect(fLFOG); fLFOG.connect(lpf.frequency);
+  fLFO.start(now); nodes.push(fLFO);
+
+  master.connect(lpf);
+
+  // ── WAVEFOLDER (solar fold — adds harmonic complexity) ──
+  let chainEnd = lpf;
+  if (P.fold > 0.05) {
+    const ws = c.createWaveShaper();
+    const k = P.fold * 12;
+    const curve = new Float32Array(512);
+    for(let i=0;i<512;i++){
+      const x = i*2/512 - 1;
+      // Wavefolder: reflects amplitude back, creating solar "shimmer"
+      curve[i] = Math.sin(x * Math.PI * (0.5 + k * 0.3));
+    }
+    ws.curve = curve;
+    const wsG = c.createGain(); wsG.gain.value = 0.7;
+    lpf.connect(ws); ws.connect(wsG); wsG.connect(lpf);
+  }
+
+  // ── CHORUS (solar drift — multiple copies slightly detuned) ──
+  if (P.chorus > 0.05) {
+    const dl1=c.createDelay(.05); dl1.delayTime.value=.024;
+    const dl2=c.createDelay(.05); dl2.delayTime.value=.038;
+    const cl1=c.createOscillator(); cl1.frequency.value=0.22;
+    const cl2=c.createOscillator(); cl2.frequency.value=0.17;
+    const cg1=c.createGain(); cg1.gain.value=.006*P.chorus;
+    const cg2=c.createGain(); cg2.gain.value=.008*P.chorus;
+    cl1.connect(cg1); cg1.connect(dl1.delayTime);
+    cl2.connect(cg2); cg2.connect(dl2.delayTime);
+    const cm1=c.createGain(); cm1.gain.value=P.chorus*0.55;
+    const cm2=c.createGain(); cm2.gain.value=P.chorus*0.45;
+    chainEnd.connect(dl1); dl1.connect(cm1); cm1.connect(chainEnd);
+    chainEnd.connect(dl2); dl2.connect(cm2); cm2.connect(chainEnd);
+    cl1.start(now); cl2.start(now); nodes.push(cl1,cl2);
+  }
+
+  // ── SUB OSCILLATOR ──
+  if (P.sub > 0.05) {
+    const sub = c.createOscillator(); sub.type='sine';
+    sub.frequency.value = freq * 0.5;
+    const subG = c.createGain(); subG.gain.value=0;
+    subG.gain.linearRampToValueAtTime(vel*P.sub*0.55, now+P.attack*1.1);
+    const subLpf=c.createBiquadFilter();subLpf.type='lowpass';subLpf.frequency.value=400;
+    sub.connect(subLpf); subLpf.connect(subG); subG.connect(chainEnd);
+    sub.start(now); nodes.push(sub, subG);
+  }
+
+  // ── SOLAR FLARE (bright high-partial burst on attack) ──
+  if (P.flare > 0.05) {
+    const flLen=Math.floor(c.sampleRate*0.06);
+    const flBuf=c.createBuffer(1,flLen,c.sampleRate);
+    const fd=flBuf.getChannelData(0);
+    for(let i=0;i<flLen;i++) fd[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.018));
+    const fl=c.createBufferSource(); fl.buffer=flBuf;
+    const flBpf=c.createBiquadFilter(); flBpf.type='bandpass';
+    flBpf.frequency.value=freq*6; flBpf.Q.value=2;
+    const flG=c.createGain(); flG.gain.value=vel*P.flare*0.4;
+    fl.connect(flBpf); flBpf.connect(flG); flG.connect(chainEnd);
+    fl.start(now); fl.stop(now+0.07); nodes.push(fl);
+  }
+
+  // ── ROUTE ──
+  const dry=c.createGain(); dry.gain.value=1-P.reverb*0.88;
+  const wet=c.createGain(); wet.gain.value=P.reverb*0.88;
+  chainEnd.connect(dry); dry.connect(analyser);
+  chainEnd.connect(wet); wet.connect(convolver);
+
+  activeVoices.set(noteNum, {master, lpf, nodes, dry, wet});
+  updateDisplay(noteNum, freq);
+  updateVoiceCount();
+  document.getElementById('power-dot').classList.add('on');
+}
+
+// ── Character builders ──
+function buildSolarSaw(c, freq, vel, now, master, nodes) {
+  // Classic warm saw: full harmonic series built from individual sines
+  // Amplitude = 1/n (classic Fourier), shaped by odd/even knobs
+  const numH = 16;
+  for(let h=1;h<=numH;h++){
+    const osc=c.createOscillator(); osc.type='sine';
+    osc.frequency.value=freq*h;
+    osc.detune.value=(Math.random()-.5)*(P.detune*(1+h*0.08));
+    const isOdd=h%2!==0;
+    const amp=(1/h)*(isOdd?P.odd:P.even)*vel*0.55;
+    const g=c.createGain(); g.gain.value=amp;
+    // Slow shimmer LFO per harmonic
+    const lfo=c.createOscillator(); lfo.frequency.value=0.08+h*0.015+Math.random()*.05;
+    const lfoG=c.createGain(); lfoG.gain.value=amp*0.12;
+    lfo.connect(lfoG); lfoG.connect(g.gain);
+    osc.connect(g); g.connect(master);
+    osc.start(now); lfo.start(now);
+    nodes.push(osc,lfo);
+  }
+}
+
+function buildPlasma(c, freq, vel, now, master, nodes) {
+  // Plasma: saturated sawtooth + inharmonic buzz
+  const osc1=c.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=freq;
+  osc1.detune.value=(Math.random()-.5)*P.detune;
+  const osc2=c.createOscillator(); osc2.type='sawtooth'; osc2.frequency.value=freq;
+  osc2.detune.value=P.detune+(Math.random()-.5)*3;
+  const osc3=c.createOscillator(); osc3.type='sawtooth'; osc3.frequency.value=freq;
+  osc3.detune.value=-P.detune+(Math.random()-.5)*3;
+
+  const ws=c.createWaveShaper();
+  const k=8+P.heat*20;
+  const curve=new Float32Array(512);
+  for(let i=0;i<512;i++){const x=i*2/512-1;curve[i]=(Math.PI+k)*x/(Math.PI+k*Math.abs(x));}
+  ws.curve=curve;
+  const wsG=c.createGain();wsG.gain.value=0.45;
+
+  const g1=c.createGain();g1.gain.value=vel*0.5;
+  const g2=c.createGain();g2.gain.value=vel*0.28;
+  const g3=c.createGain();g3.gain.value=vel*0.28;
+  osc1.connect(g1);g1.connect(ws);ws.connect(wsG);wsG.connect(master);
+  osc2.connect(g2);g2.connect(master);
+  osc3.connect(g3);g3.connect(master);
+  [osc1,osc2,osc3].forEach(o=>{o.start(now);nodes.push(o);});
+}
+
+function buildCorona(c, freq, vel, now, master, nodes) {
+  // Corona: thin ring — emphasize high partials (8-16x), weak fundamental
+  const partials=[1,2,4,8,9,11,12,13,15,16];
+  const amps     =[0.2,0.15,0.25,0.4,0.35,0.3,0.28,0.25,0.2,0.18];
+  partials.forEach((h,i)=>{
+    const osc=c.createOscillator();osc.type='sine';osc.frequency.value=freq*h;
+    osc.detune.value=(Math.random()-.5)*P.detune*0.5;
+    const lfo=c.createOscillator();lfo.frequency.value=0.2+h*0.02;
+    const lfoG=c.createGain();lfoG.gain.value=amps[i]*0.2;
+    lfo.connect(lfoG);lfoG.connect(osc.detune);
+    const g=c.createGain();g.gain.value=amps[i]*vel*0.5;
+    osc.connect(g);g.connect(master);
+    osc.start(now);lfo.start(now);nodes.push(osc,lfo);
+  });
+}
+
+function buildForge(c, freq, vel, now, master, nodes) {
+  // Forge: heavy industrial — square + fat saw + sub rumble
+  const osc1=c.createOscillator();osc1.type='sawtooth';osc1.frequency.value=freq;
+  const osc2=c.createOscillator();osc2.type='square';osc2.frequency.value=freq;
+  osc2.detune.value=P.detune*0.5;
+  const osc3=c.createOscillator();osc3.type='sawtooth';osc3.frequency.value=freq*0.5;
+
+  // Heavy waveshaping
+  const ws=c.createWaveShaper();
+  const curve=new Float32Array(512);
+  for(let i=0;i<512;i++){
+    const x=i*2/512-1;
+    curve[i]=Math.sign(x)*Math.pow(Math.abs(x),0.4);
+  }
+  ws.curve=curve;
+  const wsG=c.createGain();wsG.gain.value=0.5;
+
+  const g1=c.createGain();g1.gain.value=vel*0.55;
+  const g2=c.createGain();g2.gain.value=vel*0.3;
+  const g3=c.createGain();g3.gain.value=vel*0.35;
+  osc1.connect(g1);g1.connect(ws);ws.connect(wsG);wsG.connect(master);
+  osc2.connect(g2);g2.connect(master);
+  osc3.connect(g3);g3.connect(master);
+  [osc1,osc2,osc3].forEach(o=>{o.start(now);nodes.push(o);});
+}
+
+function buildAncient(c, freq, vel, now, master, nodes) {
+  // Ancient: very slow-breathing, massive — detuned layers with long LFOs
+  const layers=[
+    {f:freq,      det:0,        t:'triangle', amp:0.6},
+    {f:freq,      det:P.detune, t:'sawtooth', amp:0.35},
+    {f:freq,      det:-P.detune,t:'sawtooth', amp:0.35},
+    {f:freq*2,    det:0,        t:'sine',     amp:0.2},
+    {f:freq*0.5,  det:0,        t:'sine',     amp:0.25},
+  ];
+  layers.forEach((l,i)=>{
+    const osc=c.createOscillator();osc.type=l.t;osc.frequency.value=l.f;
+    osc.detune.value=l.det+(Math.random()-.5)*2;
+    // Very slow drift LFO — ancient breathing
+    const lfo=c.createOscillator();lfo.frequency.value=0.03+i*0.008;
+    const lfoG=c.createGain();lfoG.gain.value=P.detune*0.5;
+    lfo.connect(lfoG);lfoG.connect(osc.detune);
+    const g=c.createGain();g.gain.value=l.amp*vel*0.55;
+    osc.connect(g);g.connect(master);
+    osc.start(now);lfo.start(now);nodes.push(osc,lfo);
+  });
+}
+
+function stopNote(noteNum) {
+  const v=activeVoices.get(noteNum); if(!v)return;
+  const c=actx,now=c.currentTime;
+  v.master.gain.setTargetAtTime(0,now,P.release*0.35);
+  v.lpf.frequency.exponentialRampToValueAtTime(80,now+P.release*0.4);
+  setTimeout(()=>{
+    v.nodes.forEach(n=>{try{n.stop()}catch(e){}});
+    try{v.master.disconnect();v.lpf.disconnect();v.dry.disconnect();v.wet.disconnect();}catch(e){}
+  },(P.release*1.3+0.5)*1000);
+  activeVoices.delete(noteNum);
+  updateVoiceCount();
+  if(activeVoices.size===0) document.getElementById('power-dot').classList.remove('on');
+}
+
+function updateDisplay(noteNum, freq) {
+  const name=NOTE_NAMES[noteNum%12];
+  const oct=Math.floor(noteNum/12)-1;
+  document.getElementById('sun-note').textContent=name;
+  document.getElementById('sun-freq').textContent=Math.round(freq)+' Hz';
+  document.getElementById('sun-voice-text').textContent=SOLAR_DESCRIPTIONS[P.char];
+  document.getElementById('panel-note').textContent=name;
+  document.getElementById('panel-freq').textContent=Math.round(freq)+' Hz';
+  document.getElementById('panel-desc').textContent=SOLAR_DESCRIPTIONS[P.char];
+  document.getElementById('hs-note').textContent=name+oct;
+  document.getElementById('hs-partial').textContent=Math.round(freq)+'Hz';
+  ['hs-note','hs-partial'].forEach(id=>{
+    const el=document.getElementById(id);el.className='lit';
+    clearTimeout(el._t);el._t=setTimeout(()=>el.className='',450);
+  });
+  // Update harmonic bars based on current char and knobs
+  updateHarmonicBars();
+}
+
+function updateVoiceCount() {
+  document.getElementById('hs-voices').textContent=activeVoices.size;
+  document.getElementById('hs-voices').className=activeVoices.size>0?'lit2':'';
+}
+
+function updateHarmonicBars() {
+  const bars=[1,2,3,4,5,6,7,8];
+  bars.forEach(h=>{
+    const isOdd=h%2!==0;
+    const base=1/h;
+    let amp;
+    switch(P.char){
+      case 'corona':  amp=h<5?base*0.3:base*P.odd;break;
+      case 'forge':   amp=h<=2?base*0.9:base*0.3;break;
+      case 'ancient': amp=h===1?0.8:h===2?0.4:base*0.2;break;
+      default:        amp=base*(isOdd?P.odd:P.even);
+    }
+    amp=Math.min(1,amp*1.5);
+    const el=document.getElementById(`hb${h}`);
+    if(el) el.style.width=Math.round(amp*100)+'%';
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// SUN CANVAS — animated solar disc with corona rings
+// ══════════════════════════════════════════════════════════════
+const sunCanvas = document.getElementById('sun-canvas');
+const sunCtx    = sunCanvas.getContext('2d');
+let sunT = 0;
+let sunEnergy = 0;
+
+function resizeSun(){
+  const sz = document.getElementById('sun-canvas-wrap').offsetWidth;
+  sunCanvas.width = sz*2; sunCanvas.height = sz*2;
+  sunCanvas.style.width=sz+'px'; sunCanvas.style.height=sz+'px';
+}
+
+function drawSun(){
+  requestAnimationFrame(drawSun);
+
+  const W=sunCanvas.width, H=sunCanvas.height;
+  const cx=W/2, cy=H/2, r=W*0.28;
+  sunCtx.clearRect(0,0,W,H);
+  sunT+=0.022;
+
+  // Get audio energy
+  let energy=0;
+  if(analyser){
+    const buf=new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteTimeDomainData(buf);
+    let sum=0;for(let i=0;i<buf.length;i++)sum+=Math.abs(buf[i]-128);
+    energy=sum/buf.length/128;
+  }
+  sunEnergy=sunEnergy*.88+energy*.12;
+  const e=sunEnergy;
+
+  // ── OUTER CORONA RINGS ──
+  for(let ring=4;ring>=1;ring--){
+    const rr=r*(1.3+ring*0.45+e*0.4);
+    const alpha=0.04+e*0.08;
+    const grd=sunCtx.createRadialGradient(cx,cy,rr*.7,cx,cy,rr);
+    grd.addColorStop(0,`rgba(255,184,32,${alpha})`);
+    grd.addColorStop(1,'rgba(255,120,20,0)');
+    sunCtx.beginPath();sunCtx.arc(cx,cy,rr,0,Math.PI*2);
+    sunCtx.fillStyle=grd;sunCtx.fill();
+  }
+
+  // ── SUN DISC ──
+  const sunGrd=sunCtx.createRadialGradient(cx*0.92,cy*0.88,0,cx,cy,r);
+  sunGrd.addColorStop(0,'#ffffff');
+  sunGrd.addColorStop(0.15,'#fffae8');
+  sunGrd.addColorStop(0.45,'#ffe880');
+  sunGrd.addColorStop(0.72,'#ffb820');
+  sunGrd.addColorStop(0.9,'#e87000');
+  sunGrd.addColorStop(1,'rgba(200,80,0,0)');
+  sunCtx.beginPath();sunCtx.arc(cx,cy,r*(1+e*0.15),0,Math.PI*2);
+  sunCtx.fillStyle=sunGrd;sunCtx.fill();
+
+  // ── SOLAR FLARES (looping arcs off surface) ──
+  const numFlares=3;
+  for(let f=0;f<numFlares;f++){
+    const fAngle=sunT*0.7+f*(Math.PI*2/numFlares);
+    const fSize=r*(0.25+e*0.5+0.1*Math.sin(sunT*1.2+f));
+    const fDist=r*(0.9+0.08*Math.sin(sunT*0.8+f*2));
+    const fx1=cx+Math.cos(fAngle)*fDist;
+    const fy1=cy+Math.sin(fAngle)*fDist;
+    const fx2=cx+Math.cos(fAngle+0.4)*(fDist+fSize*0.8);
+    const fy2=cy+Math.sin(fAngle+0.4)*(fDist+fSize*0.8);
+    const fx3=cx+Math.cos(fAngle+0.8)*(fDist+fSize);
+    const fy3=cy+Math.sin(fAngle+0.8)*(fDist+fSize);
+    const fx4=cx+Math.cos(fAngle+1.2)*fDist;
+    const fy4=cy+Math.sin(fAngle+1.2)*fDist;
+    sunCtx.beginPath();sunCtx.moveTo(fx1,fy1);
+    sunCtx.quadraticCurveTo(fx3,fy3,fx4,fy4);
+    const fa=0.15+e*0.4;
+    sunCtx.strokeStyle=`rgba(255,220,80,${fa})`;
+    sunCtx.lineWidth=1.5+e*3;sunCtx.lineCap='round';sunCtx.stroke();
+  }
+
+  // ── SURFACE GRANULATION (texture) ──
+  if(e>0.05){
+    for(let g=0;g<8;g++){
+      const ga=Math.random()*Math.PI*2;
+      const gr=Math.random()*r*0.85;
+      const gx=cx+Math.cos(ga)*gr, gy=cy+Math.sin(ga)*gr;
+      const gr2=r*0.04+Math.random()*r*0.08;
+      const gGrd=sunCtx.createRadialGradient(gx,gy,0,gx,gy,gr2);
+      gGrd.addColorStop(0,`rgba(255,255,200,${e*0.3})`);
+      gGrd.addColorStop(1,'rgba(255,184,32,0)');
+      sunCtx.beginPath();sunCtx.arc(gx,gy,gr2,0,Math.PI*2);
+      sunCtx.fillStyle=gGrd;sunCtx.fill();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// FILTER ENVELOPE VISUALIZER
+// ══════════════════════════════════════════════════════════════
+const feCanvas = document.getElementById('filter-env-canvas');
+const feCtx    = feCanvas.getContext('2d');
+function resizeFE(){feCanvas.width=feCanvas.offsetWidth;feCanvas.height=feCanvas.offsetHeight;}
+function drawFE(){
+  requestAnimationFrame(drawFE);
+  const W=feCanvas.width,H=feCanvas.height;
+  feCtx.clearRect(0,0,W,H);
+  if(!analyser)return;
+  const buf=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(buf);
+  // Draw frequency spectrum as a golden fill
+  const barW=W/buf.length;
+  for(let i=0;i<buf.length;i++){
+    const v=buf[i]/255;
+    const bh=v*H;
+    const hue=30+i*(30/buf.length); // gold to amber
+    feCtx.fillStyle=`hsla(${hue},90%,${40+v*40}%,${0.2+v*0.5})`;
+    feCtx.fillRect(i*barW,H-bh,Math.max(1,barW-0.3),bh);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// FLARE STRIP (top mini waveform)
+// ══════════════════════════════════════════════════════════════
+const flCanvas = document.getElementById('flare-canvas');
+const flCtx    = flCanvas.getContext('2d');
+function resizeFL(){flCanvas.width=flCanvas.offsetWidth;flCanvas.height=flCanvas.offsetHeight;}
+function drawFL(){
+  requestAnimationFrame(drawFL);
+  const W=flCanvas.width,H=flCanvas.height;
+  flCtx.clearRect(0,0,W,H);
+  if(!analyser)return;
+  const buf=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(buf);
+  const grad=flCtx.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,'rgba(255,248,224,.0)');
+  grad.addColorStop(.2,'rgba(255,184,32,.6)');
+  grad.addColorStop(.5,'rgba(255,232,128,.7)');
+  grad.addColorStop(.8,'rgba(255,120,20,.6)');
+  grad.addColorStop(1,'rgba(200,56,0,.0)');
+  flCtx.strokeStyle=grad;flCtx.lineWidth=1.2;
+  flCtx.shadowColor='rgba(255,184,32,.5)';flCtx.shadowBlur=3;
+  flCtx.beginPath();
+  const step=W/buf.length;
+  for(let i=0;i<buf.length;i++){const x=i*step,y=(buf[i]/128-1)*(H*.4)+H/2;i===0?flCtx.moveTo(x,y):flCtx.lineTo(x,y);}
+  flCtx.stroke();flCtx.shadowBlur=0;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOLAR ATMOSPHERE
+// Slow orange/amber particles drifting upward like solar wind
+// ══════════════════════════════════════════════════════════════
+const atmosCanvas=document.getElementById('solar-atmos');
+const aC=atmosCanvas.getContext('2d');
+let solarWind=[];
+function initAtmos(){
+  atmosCanvas.width=window.innerWidth;atmosCanvas.height=window.innerHeight;
+  solarWind=Array.from({length:55},()=>({
+    x:Math.random()*atmosCanvas.width,
+    y:Math.random()*atmosCanvas.height,
+    r:Math.random()*1.4+.15,
+    sp:Math.random()*.12+.02,
+    o:Math.random()*.1+.01,
+    t:Math.random()*Math.PI*2,
+    drift:(Math.random()-.5)*.3,
+    warm:Math.random(), // 0=deep amber, 1=bright gold
+  }));
+}
+function drawAtmos(){
+  requestAnimationFrame(drawAtmos);
+  aC.clearRect(0,0,atmosCanvas.width,atmosCanvas.height);
+  const boost=1+sunEnergy*3;
+  solarWind.forEach(p=>{
+    p.t+=p.sp*.016*boost;
+    p.x+=p.drift+Math.sin(p.t*.6)*.3;
+    p.y-=p.sp*.35*boost;
+    if(p.y<-p.r*2){p.y=atmosCanvas.height+p.r;p.x=Math.random()*atmosCanvas.width;}
+    const fl=p.o*(0.5+0.5*Math.sin(p.t*2.2))*(1+sunEnergy*.8);
+    const r=200+Math.round(p.warm*55),g=100+Math.round(p.warm*100),b=0;
+    aC.beginPath();aC.arc(p.x,p.y,p.r,0,Math.PI*2);
+    aC.fillStyle=`rgba(${r},${g},${b},${fl})`;aC.fill();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// WAVEFORM
+// ══════════════════════════════════════════════════════════════
+const waveCanvas=document.getElementById('wave-canvas');
+const wCtx=waveCanvas.getContext('2d');
+function resizeWave(){waveCanvas.width=waveCanvas.offsetWidth;waveCanvas.height=waveCanvas.offsetHeight;}
+function drawWave(){
+  requestAnimationFrame(drawWave);
+  const W=waveCanvas.width,H=waveCanvas.height;
+  wCtx.clearRect(0,0,W,H);
+  if(!analyser)return;
+  const buf=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(buf);
+  const grad=wCtx.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,'rgba(255,248,224,.55)');
+  grad.addColorStop(.3,'rgba(255,232,128,.6)');
+  grad.addColorStop(.6,'rgba(255,184,32,.6)');
+  grad.addColorStop(1,'rgba(200,80,0,.5)');
+  wCtx.strokeStyle=grad;wCtx.lineWidth=1.4;
+  wCtx.shadowColor='rgba(255,184,32,.4)';wCtx.shadowBlur=5;
+  wCtx.beginPath();
+  const step=W/buf.length;
+  for(let i=0;i<buf.length;i++){const x=i*step,y=(buf[i]/128-1)*(H*.43)+H/2;i===0?wCtx.moveTo(x,y):wCtx.lineTo(x,y);}
+  wCtx.stroke();wCtx.shadowBlur=0;
+}
+
+// ══════════════════════════════════════════════════════════════
+// KEYBOARD
+// ══════════════════════════════════════════════════════════════
+const WHITE_KEYS=[0,2,4,5,7,9,11];
+const BLACK_SLOTS=[1,3,null,6,8,10,null];
+const KB_WHITE={a:0,s:1,d:2,f:3,g:4,h:5,j:6,k:7};
+const KB_BLACK={w:0,e:1,t:3,y:4,u:5};
+let kbOctave=4;
+const KB_OCT_MIN=1,KB_OCT_MAX=7,KB_SLOT_H=18;
+
+function buildKB(){
+  const el=document.getElementById('keyboard');el.innerHTML='';
+  const base=kbOctave*12+12;
+  for(let i=0;i<8;i++){
+    const n=base+WHITE_KEYS[i%7];
+    const wk=document.createElement('div');wk.className='key white';wk.dataset.note=n;
+    wk.innerHTML=`<span class="key-lbl">${['A','S','D','F','G','H','J','K'][i]}</span>`;
+    el.appendChild(wk);
+  }
+  requestAnimationFrame(()=>{
+    el.querySelectorAll('.key.white').forEach((wk,i)=>{
+      const slot=BLACK_SLOTS[i%7];if(slot==null)return;
+      const n=base+slot;
+      const bk=document.createElement('div');bk.className='key black';bk.dataset.note=n;
+      bk.style.left=(wk.offsetLeft+wk.offsetWidth*.6)+'px';
+      const lbls=['W','E','','T','Y','U',''];
+      if(lbls[i])bk.innerHTML=`<span class="key-lbl">${lbls[i]}</span>`;
+      el.appendChild(bk);
+    });
+    el.querySelectorAll('.key').forEach(k=>{
+      const n=parseInt(k.dataset.note);
+      k.addEventListener('mousedown',e=>{e.preventDefault();getCtx();startNote(n);k.classList.add('active');});
+      k.addEventListener('mouseup',()=>{stopNote(n);k.classList.remove('active');});
+      k.addEventListener('mouseleave',()=>{if(activeVoices.has(n)){stopNote(n);k.classList.remove('active');}});
+      k.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();getCtx();startNote(n);k.classList.add('active');},{passive:false});
+      k.addEventListener('touchend',e=>{e.preventDefault();stopNote(n);k.classList.remove('active');},{passive:false});
+    });
+  });
+}
+function buildOctWheel(){
+  const inner=document.getElementById('oct-wheel-inner');inner.innerHTML='';
+  for(let o=KB_OCT_MAX;o>=KB_OCT_MIN;o--){
+    const s=document.createElement('div');
+    s.className='ow-slot'+(o===kbOctave?' cur':'');
+    s.textContent='C'+o;s.dataset.oct=o;inner.appendChild(s);
+  }
+  scrollOW();
+}
+function scrollOW(){
+  const inner=document.getElementById('oct-wheel-inner');
+  const wH=document.getElementById('oct-wheel').clientHeight||82;
+  inner.style.transform=`translateY(${wH/2-KB_SLOT_H/2-(KB_OCT_MAX-kbOctave)*KB_SLOT_H}px)`;
+  inner.querySelectorAll('.ow-slot').forEach(s=>s.classList.toggle('cur',parseInt(s.dataset.oct)===kbOctave));
+}
+(function(){
+  const wh=document.getElementById('oct-wheel');let sy=null,so=null;
+  wh.addEventListener('mousedown',e=>{sy=e.clientY;so=kbOctave;e.preventDefault();});
+  document.addEventListener('mousemove',e=>{if(sy===null)return;const d=Math.round((sy-e.clientY)/KB_SLOT_H);const n=Math.max(KB_OCT_MIN,Math.min(KB_OCT_MAX,so+d));if(n!==kbOctave){kbOctave=n;scrollOW();buildKB();}});
+  document.addEventListener('mouseup',()=>{sy=null;});
+  wh.addEventListener('wheel',e=>{e.preventDefault();kbOctave=Math.max(KB_OCT_MIN,Math.min(KB_OCT_MAX,kbOctave+(e.deltaY>0?-1:1)));scrollOW();buildKB();},{passive:false});
+  wh.addEventListener('click',e=>{const s=e.target.closest('.ow-slot');if(s){kbOctave=parseInt(s.dataset.oct);scrollOW();buildKB();}});
+})();
+
+document.addEventListener('keydown',e=>{
+  if(e.repeat||e.target.tagName==='INPUT')return;
+  const key=e.key.toLowerCase();
+  if(key==='z'){kbOctave=Math.max(KB_OCT_MIN,kbOctave-1);scrollOW();buildKB();return;}
+  if(key==='x'){kbOctave=Math.min(KB_OCT_MAX,kbOctave+1);scrollOW();buildKB();return;}
+  const base=kbOctave*12+12;let n=null;
+  if(KB_WHITE[key]!==undefined)n=base+WHITE_KEYS[KB_WHITE[key]];
+  else if(KB_BLACK[key]!==undefined){const s=BLACK_SLOTS[KB_BLACK[key]];if(s!=null)n=base+s;}
+  if(n!==null&&!activeVoices.has(n)){
+    getCtx();startNote(n);
+    document.getElementById('keyboard')?.querySelectorAll('.key').forEach(k=>{if(parseInt(k.dataset.note)===n)k.classList.add('active');});
+  }
+});
+document.addEventListener('keyup',e=>{
+  const key=e.key.toLowerCase();const base=kbOctave*12+12;let n=null;
+  if(KB_WHITE[key]!==undefined)n=base+WHITE_KEYS[KB_WHITE[key]];
+  else if(KB_BLACK[key]!==undefined){const s=BLACK_SLOTS[KB_BLACK[key]];if(s!=null)n=base+s;}
+  if(n!==null){
+    stopNote(n);
+    document.getElementById('keyboard')?.querySelectorAll('.key').forEach(k=>{if(parseInt(k.dataset.note)===n)k.classList.remove('active');});
+  }
+});
+
+// ── Panel buttons ──
+document.querySelectorAll('[data-char]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-char]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); P.char=btn.dataset.char;
+    updateHarmonicBars();
+    document.getElementById('sun-voice-text').textContent=SOLAR_DESCRIPTIONS[P.char];
+    document.getElementById('panel-desc').textContent=SOLAR_DESCRIPTIONS[P.char];
+  });
+});
+
+// ── Knobs ──
+function setupKnobs(){
+  document.querySelectorAll('canvas.knob').forEach(canvas=>{
+    const id=canvas.id,min=parseFloat(canvas.dataset.min),max=parseFloat(canvas.dataset.max);
+    let val=parseFloat(canvas.dataset.val);
+    const color=canvas.dataset.color||'#ffb820';
+    const valEl=document.getElementById('v-'+id.replace('k-',''));
+    function draw(){
+      const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=w*0.38;
+      ctx.clearRect(0,0,w,h);
+      const sA=Math.PI*.75,eA=Math.PI*2.25,t=(val-min)/(max-min),cA=sA+t*(eA-sA);
+      ctx.beginPath();ctx.arc(cx,cy,r,sA,eA);ctx.strokeStyle='rgba(255,184,32,.1)';ctx.lineWidth=3;ctx.lineCap='round';ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,r,sA,cA);ctx.strokeStyle=color;ctx.lineWidth=3;
+      ctx.shadowColor=color;ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;
+      const dx=cx+r*Math.cos(cA),dy=cy+r*Math.sin(cA);
+      ctx.beginPath();ctx.arc(dx,dy,2.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fillStyle='#08040c';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,1.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    }
+    let dragY=null,dragVal=null;
+    canvas.addEventListener('mousedown',e=>{dragY=e.clientY;dragVal=val;e.preventDefault();});
+    document.addEventListener('mousemove',e=>{if(dragY===null)return;val=Math.max(min,Math.min(max,dragVal+(dragY-e.clientY)*(max-min)/130));draw();onKnob(id,val,valEl);});
+    document.addEventListener('mouseup',()=>{dragY=null;});
+    draw();onKnob(id,val,valEl);
+  });
+}
+function onKnob(id,val,el){
+  const map={
+    'k-attack':  v=>{P.attack=v;  el.textContent=v.toFixed(2);},
+    'k-release': v=>{P.release=v; el.textContent=v.toFixed(2);},
+    'k-heat':    v=>{P.heat=v;    el.textContent=v.toFixed(2);},
+    'k-mass':    v=>{P.mass=v;    el.textContent=v.toFixed(2);},
+    'k-reverb':  v=>{P.reverb=v;  el.textContent=v.toFixed(2);},
+    'k-detune':  v=>{P.detune=v;  el.textContent=Math.round(v);},
+    'k-odd':     v=>{P.odd=v;     el.textContent=v.toFixed(2); updateHarmonicBars();},
+    'k-even':    v=>{P.even=v;    el.textContent=v.toFixed(2); updateHarmonicBars();},
+    'k-sub':     v=>{P.sub=v;     el.textContent=v.toFixed(2);},
+    'k-flare':   v=>{P.flare=v;   el.textContent=v.toFixed(2);},
+    'k-fold':    v=>{P.fold=v;    el.textContent=v.toFixed(2);},
+    'k-chorus':  v=>{P.chorus=v;  el.textContent=v.toFixed(2);},
+  };
+  if(map[id])map[id](val);
+}
+
+const cursor=document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';});
+window.addEventListener('resize',()=>{resizeWave();resizeSun();resizeFE();resizeFL();initAtmos();buildKB();});
+
+setupKnobs();
+resizeWave();resizeSun();resizeFE();resizeFL();
+initAtmos();drawAtmos();drawWave();drawSun();drawFE();drawFL();
+buildKB();buildOctWheel();updateHarmonicBars();
+</script>
+</body>
+</html>
